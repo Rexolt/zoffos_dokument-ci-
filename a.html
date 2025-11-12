@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>zoffOS Server LXQt (1.0.5) – Teljes Rendszer Dokumentáció</title>
+  <meta name="description" content="zoffOS Server LXQt (1.0.5) – filozófia, telepítés, első indítás, hálózat, biztonság, webszerver, tűzfal, naplózás, karbantartás, ZFS, Debian FHS, hibakeresés – részletes HTML + CSS dokumentáció." />
+  <style>
+    :root {
+      --bg:#0b0d10; --panel:#12151a; --muted:#1a1f27; --text:#e7eaf0; --sub:#b7c0cf;
+      --accent:#70e1ff; --accent-2:#64f7a3; --danger:#ff6b6b; --border:#222838; --code-bg:#0e1116;
+      --shadow:0 12px 36px rgba(0,0,0,.4); --radius:16px; --radius-sm:12px; --maxw:1180px;
+    }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f7f9fc; --panel:#ffffff; --muted:#eef2f8; --text:#0b1220; --sub:#4b5563;
+             --accent:#0ea5e9; --accent-2:#10b981; --danger:#dc2626; --border:#e5e7eb; --code-bg:#0b1220;
+             --shadow:0 12px 36px rgba(2,6,23,.08);
+      }
+    }
+    /* Base */
+    html{scroll-behavior:smooth}
+    body{margin:0; font:16px/1.65 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji"; color:var(--text); background:radial-gradient(1200px 800px at -10% -10%, rgba(112,225,255,.06), transparent 55%), radial-gradient(1200px 800px at 110% 10%, rgba(100,247,163,.06), transparent 55%), var(--bg)}
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .container{max-width:var(--maxw); margin:0 auto; padding:24px}
+    ul,ol{padding-left:20px}
+    li{margin-bottom:8px}
+
+    /* Layout */
+    .layout{display:grid; grid-template-columns:290px 1fr; gap:20px; min-height:100dvh}
+    nav.sidebar{position:sticky; top:0; height:100dvh; overflow-y:auto; padding:22px; border-right:1px solid var(--border); background:linear-gradient(180deg, rgba(0,0,0,.05), transparent), var(--bg)}
+    .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px}
+    .brand .ver{margin-left:auto; font:12px ui-monospace; color:var(--sub); background:var(--muted); padding:6px 8px; border-radius:999px}
+    .toc{margin:16px 0 8px; border:1px dashed var(--border); border-radius:14px; padding:12px; background:rgba(0,0,0,.03)}
+    .toc h3{margin:0 0 6px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--sub)}
+    .toc a{display:block; padding:8px 10px; border-radius:10px; color:var(--text); text-decoration:none; font-size:15px}
+    .toc a:hover{background:var(--muted)}
+
+    main{padding:24px}
+
+    /* Hero */
+    .hero{background:linear-gradient(140deg, rgba(112,225,255,.1), rgba(100,247,163,.1)); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow); padding:28px; margin:14px 0 26px}
+    .hero h1{margin:0 0 8px; font-size:28px}
+    .hero p{margin:0; color:var(--sub); font-size:17px; line-height:1.6}
+
+    /* Sections */
+    section{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin:18px 0}
+    section h2{margin:0 0 12px; font-size:22px; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:8px}
+    section h3{margin-top:20px; font-size:19px; color:var(--accent-2)}
+    section h4{margin-top:16px; font-size:17px; color:var(--sub); font-weight:600}
+
+    /* Helpers */
+    .grid{display:grid; gap:16px}
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    @media (max-width:1100px){.layout{grid-template-columns:1fr} nav.sidebar{position:relative; height:auto; overflow-y:visible}}
+    @media (max-width:900px){.grid.cols-2,.grid.cols-3{grid-template-columns:1fr}}
+
+    code,kbd,pre{font:13.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    pre{background:var(--code-bg); color:#e9eef7; padding:14px 16px; border-radius:12px; overflow:auto; border:1px solid #1b2230}
+    code:not(pre code){background:var(--muted); padding:2px 5px; border-radius:5px; color:var(--accent)}
+    kbd{background:var(--muted); border:1px solid var(--border); padding:2px 6px; border-radius:6px; color:var(--sub)}
+
+    .callout{border:1px solid var(--border); border-radius:14px; padding:16px 18px; background:var(--muted)}
+    .callout.warning{border-color:rgba(255,107,107,.4); background:linear-gradient(180deg, rgba(255,107,107,.08), transparent); color:var(--danger)}
+    .callout.success{border-color:rgba(100,247,163,.4); background:linear-gradient(180deg, rgba(100,247,163,.08), transparent); color:var(--accent-2)}
+
+    table{width:100%; border-collapse:separate; border-spacing:0; border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-top:16px}
+    th,td{padding:12px 14px; border-bottom:1px solid var(--border)}
+    thead th{background:var(--muted); text-align:left; font-size:14px; color:var(--sub)}
+    tbody tr:last-child td{border-bottom:0}
+
+    footer{padding:32px 0 40px; color:var(--sub); text-align:center}
+    .skip{position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden}
+    .skip:focus{position:static; width:auto; height:auto}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">Ugrás a tartalomra</a>
+  <div class="layout">
+    <nav class="sidebar" aria-label="Oldal navigáció">
+      <div class="brand">zoffOS Docs <span class="ver">v1.0.5</span></div>
+      <div class="toc">
+        <h3>Tartalom</h3>
+        <a href="#sec-1">1. Filozófia</a>
+        <a href="#sec-2">2. Rendszerkövetelmények & ISO</a>
+        <a href="#sec-3">3. Telepítés (Live → Disk)</a>
+        <a href="#sec-4">4. Első indítás & varázsló</a>
+        <a href="#sec-5">5. Hálózat & tűzfal</a>
+        <a href="#sec-6">6. SSH hardening</a>
+        <a href="#sec-7">7. Webszerver (Nginx + TLS)</a>
+        <a href="#sec-8">8. Naplózás & monitorozás</a>
+        <a href="#sec-9">9. Karbantartás & frissítés</a>
+        <a href="#sec-10">10. ZFS alapok</a>
+        <a href="#sec-11">11. LXQt & megjelenés</a>
+        <a href="#sec-12">12. Debian FHS mélyebben</a>
+        <a href="#sec-13">13. Gyakori hibák & megoldások</a>
+        <a href="#sec-14">14. Parancs puskázó</a>
+        <a href="#sec-15">15. Fogalomtár</a>
+        <a href="#sec-16">16. Felhasználók & jogosultságok</a>
+        <a href="#sec-17">17. AppArmor & szolgáltatás-izoláció</a>
+        <a href="#sec-18">18. Mentési stratégiák</a>
+        <a href="#sec-19">19. Automatizálás: systemd units & timers</a>
+        <a href="#sec-20">20. Konténerek röviden (Docker/Podman)</a>
+        <a href="#sec-21">21. Konfiguráció menedzsment (Ansible)</a>
+        <a href="#sec-22">22. Reverse proxy & load balancing</a>
+        <a href="#sec-23">23. Teljesítményhangolás</a>
+        <a href="#sec-24">24. Üzemeltetési runbook</a>
+        <a href="#sec-25">25. Mellékletek & sablonok</a>
+      </div>
+      <small style="color:var(--sub); padding:0 12px; font-size:12px;">HTML + CSS • statikus • reszponzív</small>
+    </nav>
+
+    <main id="content">
+      <div class="container">
+        <header class="hero" role="banner">
+          <h1>📄 zoffOS Server LXQt (1.0.5) – Teljes Rendszer Dokumentáció</h1>
+          <p>Stabil Debian 13 „Trixie” alap + pehelykönnyű LXQt: szerverfunkciók grafikus kényelemmel. Az alábbi útmutató a telepítéstől a hardeningen át az üzemeltetésig végigvezet mindenen, kezdő és haladó felhasználók számára egyaránt.</p>
+        </header>
+
+        <section id="sec-1">
+          <h2>1. Filozófia: Miért létezik a zoffOS?</h2>
+          <p>A <strong>zoffOS</strong> célja áthidalni a tisztán parancssoros (CLI), "headless" szerverek puritánsága és a teljes értékű asztali környezetek (DE) erőforrás-igényessége közti szakadékot. A rendszer alapja egy <strong>live-telepítő</strong> (közvetlenül USB-ről kipróbálható és telepíthető), amely már induláskor tartalmazza a legfontosabb szerver-eszközöket: <code>ssh</code>, <code>ufw</code>, <code>fail2ban</code>, <code>nginx</code>, <code>htop</code>, <code>tmux</code>, mindezt egy pehelykönnyű, de funkcionális <strong>LXQt</strong> asztali környezetbe ágyazva.</p>
+          <p>Nem célja egy teljes értékű desktop OS helyettesítése, sem egy minimalista, "rock-solid" szerver-disztró leváltása. A zoffOS egy "homelab" és fejlesztői svájci bicska.</p>
+
+          <div class="grid cols-2">
+            <div class="callout">
+              <strong>Alapelvek</strong>
+              <ul>
+                <li><em>Biztonság alapból (Secure by Default)</em> – Minimalizált támadási felület, előkonfigurált UFW alap szabályok, Fail2ban aktív SSH védelemmel.</li>
+                <li><em>Egyszerűség és kényeem</em> – Grafikus telepítő és egy kényelmes első indítási varázsló, ami elvégzi az alapvető hardening lépéseket.</li>
+                <li><em>Gyorsaság és alacsony erőforrásigény</em> – Az LXQt és a válogatott csomagok alacsony memória- és CPU-lábnyomot garantálnak, messze a GNOME/KDE alatt.</li>
+                <li><em>Stabil alapok</em> – Debian 13 "Trixie" (Stable) adja a rendszer gerincét, ötvözve a megbízhatóságot a friss csomagokkal.</li>
+              </ul>
+            </div>
+            <div class="callout">
+              <strong>Ideális használati esetek</strong>
+              <ul>
+                <li><strong>Home-lab / Otthoni szerver:</strong> Pi-hole, webszerver, fájlszerver futtatása, ahol néha jól jön a grafikus felület a konfiguráláshoz.</li>
+                <li><strong>Fejlesztői "játszótér":</strong> Gyorsan telepíthető rendszer SSH, tmux, htop és egy gyors LXQt terminál emulátor (QTerminal) eléréssel.</li>
+                <li><strong>Kezdő üzemeltetők:</strong> Biztonságos és irányított indulás a szerver-adminisztráció világába, grafikus segítséggel.</li>
+                <li><strong>Demó környezet:</strong> Webszolgáltatások gyors bemutatása ügyfélnek, ahol a GUI-n keresztül a logok vagy a "htop" is megmutatható.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-2">
+          <h2>2. Rendszerkövetelmények & ISO elkészítés</h2>
+          <div class="grid cols-2">
+            <div>
+              <h3>Minimum hardver</h3>
+              <ul>
+                <li>CPU: x86_64, 2 mag (pl. Core 2 Duo vagy újabb)</li>
+                <li>RAM: 2 GB (LXQt és alap szolgáltatások)</li>
+                <li>Tárhely: 16 GB szabad SSD/NVMe</li>
+                <li>Hálózat: Ethernet (ajánlott) vagy Wi-Fi (NetworkManager támogatással)</li>
+              </ul>
+              <h4>Ajánlott hardver</h4>
+              <ul>
+                <li>CPU: x86_64, 4 mag (pl. i3/i5/Ryzen 3)</li>
+                <li>RAM: 4 GB+ (több webszolgáltatás/konténer futtatásához)</li>
+                <li>Tárhely: 32 GB+ SSD/NVMe</li>
+              </ul>
+            </div>
+            <div>
+              <h3>ISO → USB (Linux)</h3>
+              <p>Használd a <code>dd</code> parancsot vagy egy grafikus eszközt. A <code>dd</code> a legmegbízhatóbb.</p>
+              <pre><code># 1. Ellenőrizd a lemez azonosítóját (pl. /dev/sdb, NEM /dev/sdb1)
+sudo lsblk
+
+# 2. Írd ki az ISO-t (FIGYELEM: MINDEN ADAT TÖRLŐDIK /dev/sdX-ről!)
+sudo dd if=zoffos-1.0.5.iso of=/dev/sdX bs=4M status=progress oflag=sync
+</code></pre>
+              <h4>Windows</h4>
+              <ul>
+                <li>Használj <strong>Rufus</strong> vagy <strong>Ventoy</strong> eszközt.</li>
+                <li>Rufus esetén válaszd a "DD Image" írási módot, ha felajánlja.</li>
+                <li>Partíciós séma: GPT, Célrendszer: UEFI (ajánlott).</li>
+              </ul>
+            </div>
+          </div>
+          <h3>ISO integritásának ellenőrzése (Fontos!)</h3>
+          <p>Mielőtt kiírnád, ellenőrizd a letöltött fájl épségét a weboldalon található SHA256 hash segítségével.</p>
+          <pre><code># Linuxon
+sha256sum zoffos-1.0.5.iso
+
+# Hasonlítsd össze a kapott hash-t a weboldalon lévővel.</code></pre>
+          <div class="callout"><strong>Tipp:</strong> A legtöbb modern gép UEFI módban működik. Ha a telepítő nem indul, ellenőrizd a BIOS/UEFI beállításokat, és kapcsold ki a <strong>Secure Boot</strong> opciót, mivel a zoffOS (mint sok Debian-alapú live rendszer) nem rendelkezik Microsoft által aláírt boottal.</div>
+        </section>
+
+        <section id="sec-3">
+          <h2>3. Telepítés: Live módból lemezre</h2>
+          <p>A zoffOS a Calamares telepítőt használja, ami egyszerű és gyors folyamatot biztosít.</p>
+          <ol>
+            <li>Bootolj az elkészített USB eszközről. A GRUB menüben válaszd az alapértelmezett <em>"Try zoffOS Live"</em> opciót.</li>
+            <li>Betöltődik az LXQt asztal. Itt tesztelheted a hardver kompatibilitást (hálózat, kijelző).</li>
+            <li>Kattints az asztalon található <strong>"zoffOS telepítése"</strong> ikonra.</li>
+            <li>Válaszd ki a nyelvet, időzónát és billentyűzetkiosztást.</li>
+            <li><strong>Lemez partícionálás:</strong>
+              <ul>
+                <li><strong>Automatikus:</strong> "Lemez törlése és teljes felhasználása". Ez a legegyszerűbb, létrehoz egy EFI partíciót és egy <code>/</code> (gyökér) partíciót.</li>
+                <li><strong>Kézi (Haladó):</strong> Javasolt, ha külön <code>/home</code> partíciót szeretnél, vagy ZFS/LVM-et használnál. Lásd alább.</li>
+              </ul>
+            </li>
+            <li><strong>Felhasználó létrehozása:</strong> Add meg a neved, a gép nevét (hostname, pl. <code>zoff-server</code>), és egy <strong>erős jelszót</strong> az <code>admin</code> felhasználóhoz. Ez a felhasználó tagja lesz a <code>sudo</code> csoportnak.</li>
+            <li>A telepítés pár percet vesz igénybe. A végén indítsd újra a gépet, és távolítsd el az USB eszközt.</li>
+          </ol>
+          
+          <h3>Haladó partícionálási javaslat (Kézi mód)</h3>
+          <p>Ez a séma biztosítja, hogy a rendszer újratelepítésekor a <code>/home</code> adatok megmaradjanak.</p>
+          <pre><code>/boot/efi    512M      FAT32     (EFI System Partition, 'esp' és 'boot' flag)
+/            30G-50G   ext4      (A rendszer gyökere)
+/home        Maradék   ext4      (Felhasználói adatok)
+swap         4G-8G     linux-swap (Opcionális, de ajánlott)</code></pre>
+          <div class="callout"><strong>Miért érdemes külön partíció?</strong>
+            <ul>
+              <li><strong><code>/home</code> külön:</strong> Ha a rendszert (<code>/</code>) újra kell telepíteni, a <code>/home</code> partíciót formázás nélkül csatolva minden adatod és beállításod megmarad.</li>
+              <li><strong><code>/var</code> külön (Szerver):</strong> Nagy forgalmú szervereken érdemes lehet a <code>/var</code> (ahol a logok és a web adatok vannak) mappát is külön partícióra tenni, hogy egy elszabadult log ne töltse tele a gyökér partíciót.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="sec-4">
+          <h2>4. Első indítás & varázsló (<code>zoffOS-firstboot</code>)</h2>
+          <p>Az első bejelentkezés után (az <code>admin</code> felhasználóval) automatikusan elindul a <code>zoffOS-firstboot</code> terminál-alapú varázsló. Ez egy egyszerű shell script, ami segít az alapvető biztonsági beállításokban.</p>
+          <h4>A varázsló lépései:</h4>
+          <ul>
+            <li><strong>Admin jelszó megerősítése:</strong> Biztonsági ellenőrzés (a telepítés során már megadtad).</li>
+            <li><strong>Hostname véglegesítése:</strong> Lehetőség a gép nevének (pl. <code>zoff-server</code>) megváltoztatására (<code>hostnamectl set-hostname &lt;nev&gt;</code>).</li>
+            <li><strong>Rendszerfrissítés:</strong> Lefuttat egy teljes <code>apt update && apt full-upgrade</code> parancsot.</li>
+            <li><strong>SSH kulcs generálása:</strong> Létrehoz egy szerver-oldali SSH kulcspárt (<code>ed25519</code>) a <code>~/.ssh/</code> mappában, ha még nem létezik.</li>
+            <li><strong>SSH Hardening (Opcionális):</strong>
+              <ul>
+                <li>Rákérdez, hogy letiltsa-e a jelszavas SSH bejelentkezést.</li>
+                <li><strong>Erősen ajánlott</strong> igent mondani, DE csak azután, hogy a saját publikus kulcsodat már elhelyezted a szerveren!</li>
+              </ul>
+            </li>
+            <li><strong>Fail2ban engedélyezése:</strong> Véglegesen engedélyezi és elindítja a <code>fail2ban</code> szolgáltatást (<code>systemctl enable --now fail2ban</code>).</li>
+          </ul>
+          <div class="callout warning" role="alert">
+            <strong>Figyelem:</strong> A jelszavas SSH tiltása kritikus biztonsági lépés. Mielőtt igent mondasz a varázslóban, nyiss egy új terminált, és másold át a <strong>saját kliens géped</strong> publikus kulcsát (pl. <code>id_ed25519.pub</code>) a szerver <code>/home/admin/.ssh/authorized_keys</code> fájljába. Ha ezt kihagyod, és tiltod a jelszót, kizárod magad a rendszerből SSH-n keresztül.
+          </div>
+          <h3>A varázsló utáni teendők</h3>
+          <p>A varázsló lefutása után érdemes manuálisan ellenőrizni pár dolgot:</p>
+          <ol>
+            <li><strong>SSH teszt:</strong> Próbálj meg egy másik gépről SSH-val bejelentkezni a kulcsoddal.</li>
+            <li><strong>UFW állapot:</strong> Ellenőrizd a tűzfal állapotát: <code>sudo ufw status verbose</code>.</li>
+            <li><strong>Szolgáltatások:</strong> Ellenőrizd a futó fő szolgáltatásokat: <code>systemctl status ssh nginx fail2ban</code>.</li>
+          </ol>
+        </section>
+
+        <section id="sec-5">
+          <h2>5. Hálózat & tűzfal</h2>
+          <h3>UFW (Uncomplicated Firewall) alapbeállítás</h3>
+          <p>A zoffOS az UFW-t használja az <code>iptables</code> kezelésére. Az alapértelmezett politika (policy) az, hogy mindent tiltunk befelé, és mindent engedünk kifelé. Az első indítási varázsló már beállítja az alapvető szabályokat.</p>
+          <pre><code># Alapértelmezett szabályok beállítása (minden bejövő tiltva, kimenő engedve)
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Alapvető szolgáltatások engedélyezése
+sudo ufw allow 22/tcp   # SSH (vagy a te egyedi portod)
+sudo ufw allow 80/tcp   # HTTP
+sudo ufw allow 443/tcp  # HTTPS
+
+# Tűzfal engedélyezése (automatikusan indul a rendszerrel)
+sudo ufw enable
+
+# Állapot részletes lekérdezése
+sudo ufw status verbose</code></pre>
+
+          <h3>Haladó UFW szabályok</h3>
+          <pre><code># Egyedi port (pl. Plex)
+sudo ufw allow 32400/tcp
+
+# Port tartomány
+sudo ufw allow 60000:61000/udp
+
+# Szabály törlése
+sudo ufw delete allow 8080/tcp
+
+# Bejelentkezés naplózása (túl sok logot generálhat!)
+sudo ufw logging on
+
+# Rate limiting (brute-force ellen SSH-ra)
+# 6 próbálkozás / 30 mp
+sudo ufw limit 22/tcp</code></pre>
+
+          <h3>NetworkManager (NM)</h3>
+          <p>Az LXQt a NetworkManager-t használja a hálózatkezeléshez. A tálcán található appleten keresztül könnyen kezelhető.</p>
+          <h4>CLI (nmcli)</h4>
+          <p>A parancssoros <code>nmcli</code> rendkívül erős eszköz.</p>
+          <pre><code># Eszközök állapota (látja-e a kártyát?)
+nmcli device status
+
+# Elérhető kapcsolat profilok
+nmcli connection show
+
+# Elérhető Wi-Fi hálózatok
+nmcli device wifi list</code></pre>
+          <h4>TUI (nmtui)</h4>
+          <p>Ha a grafikus felület nem elérhető, de egy "menüs" megoldás kell, használd az <code>nmtui</code> parancsot. Ez egy teljes képernyős, terminál-alapú kezelőfelület a NetworkManagerhez.</p>
+          <pre><code>nmtui</code></pre>
+        </section>
+
+        <section id="sec-6">
+          <h2>6. SSH hardening lépésről lépésre</h2>
+          <p>A biztonságos SSH kapcsolat alapja a kulcs-alapú azonosítás és a jelszavas bejelentkezés teljes tiltása.</p>
+          <ol>
+            <li><strong>Kulcspár generálás (a SAJÁT KLIENS gépeden!)</strong>
+              <p>Ha még nincs kulcsod, generálj egyet. Az <code>ed25519</code> jelenleg a legerősebb és leggyorsabb.</p>
+              <pre><code># Ez a te laptopodon/PC-den fusson
+ssh-keygen -t ed25519 -C "admin@zoffos-server"</code></pre>
+            </li>
+            <li><strong>Publikus kulcs másolása a zoffOS szerverre</strong>
+              <p>Ez a parancs átmásolja a <code>.pub</code> fájlod tartalmát a szerver <code>authorized_keys</code> fájljába.</p>
+              <pre><code># Még mindig a kliens gépen (SzerverIP = a zoffOS címe)
+ssh-copy-id admin@SzerverIP</code></pre>
+            </li>
+            <li><strong>Belépés kulccsal és a jelszó tiltása (a Szerveren)</strong>
+              <p>Lépj be SSH-n. Most már kulccsal fog beléptetni. Ezután szerkeszd az SSH konfigurációs fájlt.</p>
+              <pre><code># Lépj be a szerverre
+ssh admin@SzerverIP
+
+# Szerkeszd a configot (nano, vim, vagy az LXQt-n a Featherpad)
+sudo nano /etc/ssh/sshd_config</code></pre>
+            </li>
+            <li><strong>Fontos beállítások az <code>sshd_config</code> fájlban</strong>
+              <p>Keresd meg és módosítsd az alábbi sorokat (szedd ki a <code>#</code> jelet előlük, ha szükséges):</p>
+              <pre><code># Port 22  (Változtasd meg egy nem-sztenderd portra, pl. 2244, a robotok ellen)
+PermitRootLogin no
+PubkeyAuthentication yes
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+UsePAM no # Vitatható, de növeli a biztonságot, ha csak kulcsot használsz
+
+# Opcionális, de erős: modern algoritmusok előnyben részesítése
+KexAlgorithms sntrup761x25519-sha512@openssh.com,curve25519-sha256
+MACs hmac-sha2-512,hmac-sha2-256</code></pre>
+            </li>
+            <li><strong>SSH szolgáltatás újraindítása</strong>
+              <pre><code># Config tesztelése
+sudo sshd -t
+
+# Ha "OK", akkor újraindítás
+sudo systemctl restart ssh</code></pre>
+            </li>
+            <li><strong>Fail2ban ellenőrzés</strong>
+              <p>A zoffOS alapból tartalmaz egy <code>[sshd]</code> jail-t. Ellenőrizd, hogy fut-e.</p>
+              <pre><code>sudo fail2ban-client status
+sudo fail2ban-client status sshd</code></pre>
+            </li>
+          </ol>
+          <div class="callout success"><strong>Tipp:</strong> Ha megváltoztattad az SSH portot (pl. 2244-re), ne felejtsd el frissíteni az UFW szabályt!
+          <pre><code>sudo ufw allow 2244/tcp
+sudo ufw delete allow 22/tcp</code></pre>
+          És innentől így tudsz belépni: <code>ssh -p 2244 admin@SzerverIP</code></div>
+        </section>
+
+        <section id="sec-7">
+          <h2>7. Webszerver (Nginx + TLS)</h2>
+          <p>Az Nginx gyors, könnyű és rendkívül jól skálázható webszerver és reverse proxy. A zoffOS alapból telepíti.</p>
+          <h3>Nginx indítás és állapot</h3>
+          <pre><code># Engedélyezés (bootkor induljon) és azonnali indítás
+sudo systemctl enable --now nginx
+
+# Állapot ellenőrzése
+sudo systemctl status nginx
+# Ellenőrizd, hogy az UFW engedi-e a 80 és 443 portokat!
+sudo ufw status</code></pre>
+          
+          <h3>Alap közzététel (Default site)</h3>
+          <p>Az alapértelmezett Nginx konfiguráció a <code>/var/www/html</code> mappából szolgál ki.</p>
+          <pre><code># Hozzunk létre egy teszt oldalt
+sudo mkdir -p /var/www/html
+sudo chown -R www-data:www-data /var/www/html
+sudo chmod -R 755 /var/www/html
+echo "<h1>Helló, zoffOS Nginx!</h1>" | sudo tee /var/www/html/index.html</code></pre>
+
+          <h3>Virtual host (Saját domain, pl. <code>example.hu</code>)</h3>
+          <p>A "best practice" az, hogy minden oldalnak saját konfigurációs fájlt hozunk létre a <code>sites-available</code> mappában, majd szimbolikusan linkeljük a <code>sites-enabled</code> mappába.</p>
+          <pre><code># 1. Konfig fájl létrehozása
+sudo nano /etc/nginx/sites-available/example.hu
+
+# 2. Másold be ezt a tartalmat (example.hu helyett a saját domainnel)
+server {
+  listen 80;
+  listen [::]:80;
+  
+  server_name example.hu www.example.hu;
+  
+  root /var/www/example.hu;
+  index index.html index.htm;
+  
+  location / {
+    try_files $uri $uri/ =404;
+  }
+  
+  access_log /var/log/nginx/example.hu_access.log;
+  error_log  /var/log/nginx/example.hu_error.log warn;
+}
+
+# 3. Hozd létre a web gyökeret az új oldalnak
+sudo mkdir -p /var/www/example.hu
+sudo chown -R www-data:www-data /var/www/example.hu
+echo "<h1>Ez az example.hu oldal!</h1>" | sudo tee /var/www/example.hu/index.html
+
+# 4. Engedélyezd az oldalt (szimlink létrehozása)
+sudo ln -s /etc/nginx/sites-available/example.hu /etc/nginx/sites-enabled/
+
+# 5. (Opcionális) Töröld az alapértelmezett oldalt, hogy ne ütközzön
+sudo rm /etc/nginx/sites-enabled/default
+
+# 6. Teszteld a configot és töltsd újra az Nginx-et
+sudo nginx -t
+# Ha 'syntax is ok', akkor:
+sudo systemctl reload nginx</code></pre>
+          
+          <h3>HTTPS – Let's Encrypt (Certbot)</h3>
+          <p>A Certbot a legegyszerűbb módja az ingyenes Let's Encrypt SSL tanúsítványok beszerzésének és automatikus megújításának.</p>
+          <pre><code># 1. Certbot és Nginx plugin telepítése
+sudo apt update && sudo apt install -y certbot python3-certbot-nginx
+
+# 2. Tanúsítvány igénylése (DNS-nek már a szerver IP-jére kell mutatnia!)
+# A certbot automatikusan módosítja az Nginx konfigodat a HTTPS-hez.
+sudo certbot --nginx -d example.hu -d www.example.hu
+
+# 3. Automatikus megújítás tesztelése
+sudo certbot renew --dry-run
+# A certbot systemd timer (certbot.timer) automatikusan gondoskodik a megújításról.</code></pre>
+          
+          <h4>Biztonságos TLS beállítások (HSTS, DHE, stb.)</h4>
+          <p>Miután a Certbot beállította a HTTPS-t, érdemes tovább finomítani a biztonságot. Szerkeszd a <code>/etc/nginx/sites-available/example.hu</code> fájlt, és add hozzá/módosítsd ezeket az <code>ssl_</code> kezdetű sorokat a <code>server</code> blokkon belül:</p>
+          <pre><code># ... a 'listen 443 ssl;' sorok után
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers on;
+ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+ssl_ecdh_curve secp384r1;
+ssl_session_cache shared:SSL:10m;
+ssl_session_tickets off;
+
+# Erős Diffie-Hellman kulcs (generálni kell!)
+# sudo openssl dhparam -out /etc/nginx/dhparam.pem 4096
+ssl_dhparam /etc/nginx/dhparam.pem;
+
+# HTTP Strict Transport Security (HSTS) - 2 év
+add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+# További biztonsági fejlécek
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;</code></pre>
+        </section>
+
+        <section id="sec-8">
+          <h2>8. Naplózás & monitorozás</h2>
+          <p>A rendszerproblémák felderítésének kulcsa a naplófájlok (logok) és a rendszer erőforrásainak folyamatos figyelése.</p>
+          <div class="grid cols-2">
+            <div>
+              <h3><code>journalctl</code> (systemd napló)</h3>
+              <p>A <code>systemd</code> központi naplózója, a <code>journald</code>, gyűjt mindent.</p>
+              <pre><code># Teljes napló, az aljáról kezdve (kilépés: q)
+journalctl -e
+
+# Csak az utolsó boot óta
+journalctl -b
+
+# Csak egy adott szolgáltatás (pl. Nginx) naplói
+journalctl -u nginx
+
+# Csak a mai nap
+journalctl --since "today"
+
+# Folyamatos követés (mint 'tail -f')
+journalctl -f
+
+# Csak a hiba (error) szintű üzenetek
+journalctl -p err -b</code></pre>
+            </div>
+            <div>
+              <h3>Hagyományos logok (<code>/var/log</code>)</h3>
+              <p>Bár a <code>journald</code> központi, sok szolgáltatás még ír a <code>/var/log</code> mappába.</p>
+              <pre><code># Nginx logok (ha a vhostban így állítottad be)
+tail -f /var/log/nginx/example.hu_error.log
+
+# Sikertelen bejelentkezések (Fail2ban is ezt nézi)
+tail -f /var/log/auth.log
+
+# Csomagkezelő logjai
+cat /var/log/apt/history.log
+
+# Logok rotálása
+sudo logrotate -f /etc/logrotate.conf</code></pre>
+            </div>
+          </div>
+          <h3>Valós idejű erőforrás-figyelés</h3>
+          <pre><code># A klasszikus, interaktív processzfigyelő
+htop
+
+# Memória és swap használat (human-readable)
+free -h
+
+# Lemezhasználat (human-readable, 1 mélység)
+df -h
+du -h --max-depth=1 /var/
+
+# I/O műveletek figyelése (szűk keresztmetszet keresés)
+# Telepíteni kell: sudo apt install iotop
+sudo iotop
+
+# Hálózati forgalom figyelése
+# Telepíteni kell: sudo apt install iftop
+sudo iftop
+
+# Aktív hálózati kapcsolatok listázása
+ss -tulpn</code></pre>
+        </section>
+
+        <section id="sec-9">
+          <h2>9. Karbantartás & frissítés</h2>
+          <p>Egy szerver karbantartása rendszeres frissítést és takarítást igényel.</p>
+          <h3>APT csomagkezelés</h3>
+          <pre><code># 1. Csomaglisták frissítése
+sudo apt update
+
+# Elérhető frissítések listázása
+sudo apt list --upgradable
+
+# 2. Teljes rendszerfrissítés (kernel és függőségek is)
+sudo apt full-upgrade -y
+
+# 3. Feleslegessé vált csomagok (pl. régi kernelek) eltávolítása
+sudo apt autoremove --purge -y
+
+# Egyedi csomag telepítése
+sudo apt install mc
+
+# Csomag eltávolítása (konfig fájlokkal együtt)
+sudo apt purge mc</code></pre>
+
+          <h3>Automatikus frissítések (Unattended-Upgrades)</h3>
+          <p>Erősen ajánlott beállítani, hogy a biztonsági frissítések automatikusan települjenek.</p>
+          <pre><code># 1. Csomag telepítése
+sudo apt install unattended-upgrades apt-listchanges
+
+# 2. Konfiguráció finomhangolása (pl. auto-reboot)
+sudo nano /etc/apt/apt.conf.d/50unattended-upgrades
+# Általában az alap Debian beállítások jók (csak security).
+
+# 3. Engedélyezés
+sudo dpkg-reconfigure -plow unattended-upgrades</code></pre>
+
+          <h3>Szolgáltatások menedzselése (<code>systemctl</code>)</h3>
+          <pre><code># Szolgáltatás állapotának lekérdezése
+systemctl status nginx
+
+# Szolgáltatás újraindítása (pl. config módosítás után)
+systemctl restart ssh
+
+# Szolgáltatás engedélyezése (rendszerinduláskor induljon)
+systemctl enable fail2ban
+
+# Szolgáltatás letiltása
+systemctl disable cron</code></pre>
+
+          <h3>Biztonsági mentés (<code>rsync</code> példák)</h3>
+          <p>Az <code>rsync</code> egy hatékony eszköz a fájlok szinkronizálására, akár helyi, akár távoli helyre.</p>
+          <pre><code># /home mentése egy csatolt USB meghajtóra (/mnt/backup)
+# -a: archív mód (jogosultságok, időbélyegek megmaradnak)
+# -v: verbose (részletes)
+# -h: human-readable
+# --delete: törli a célhelyről azokat a fájlokat, amik a forrásban már nincsenek meg
+rsync -avh --delete /home/admin/ /mnt/backup/admin/
+
+# Web gyökér mentése távoli szerverre SSH-n keresztül
+rsync -avh -e "ssh -p 2244" --delete /var/www/ backupuser@remote-server:/opt/backup/www/
+
+# Visszaállítás mentésből (csak a forrást és a célt kell megcserélni)
+rsync -avh /mnt/backup/admin/ /home/admin/</code></pre>
+        </section>
+
+        <section id="sec-10">
+          <h2>10. ZFS alapok</h2>
+          <p>A zoffOS alapból nem ZFS-re települ (az ext4 a fő fájlrendszer), de a <code>zfsutils-linux</code> csomag előre telepítve van, így könnyedén létrehozhatsz ZFS pool-okat adatlemezek számára. A ZFS egy modern, Copy-on-Write (CoW) fájlrendszer, ami páratlan adat-integritást, snapshot és klónozási képességeket biztosít.</p>
+
+          <h3>Miért használj ZFS-t?</h3>
+          <ul>
+            <li><strong>Adatintegritás:</strong> Minden adatblokk checksum-mal van ellátva. A ZFS automatikusan észleli és javítja a "csendes" adatsérüléseket (bit rot), ha redundáns pool-t (pl. mirror) használsz.</li>
+            <li><strong>Snapshotok:</strong> Azonnali, szinte nulla költségű pillanatfelvételek, amikre könnyen vissza lehet térni.</li>
+            <li><strong>Copy-on-Write (CoW):</strong> A módosítások új helyre íródnak, az eredeti adat érintetlen marad, amíg az írás be nem fejeződik. Ez védi az adatot pl. áramszünet esetén.</li>
+            <li><strong>Tömörítés:</strong> Beépített, transzparens tömörítés (pl. <code>lz4</code>), ami gyorsabb, mint az adatok olvasása tömörítés nélkül, mert kevesebb I/O kell.</li>
+          </ul>
+
+          <h3>Gyors kezdés: Pool létrehozás</h3>
+          <pre><code># 1. Modul betöltése (általában automatikus)
+sudo modprobe zfs
+
+# 2. Lemezek azonosítása (használd a /dev/disk/by-id/ mappát!)
+ls -l /dev/disk/by-id/
+
+# 3. Pool létrehozás (példa: 2 lemezes tükrözés - RAID1)
+sudo zpool create -f tank mirror /dev/disk/by-id/ATA-DISK-A /dev/disk/by-id/ATA-DISK-B
+
+# 4. Pool létrehozás (példa: egy lemez, csak tesztelésre!)
+sudo zpool create -f tank /dev/sdb
+
+# 5. Állapot ellenőrzése
+sudo zpool status</code></pre>
+
+          <h3>Dataset-ek és tulajdonságok</h3>
+          <p>A "Pool" (<code>tank</code>) egy tároló. Ezen belül "Dataset"-eket hozunk létre, amik úgy viselkednek, mint a mappák, de saját tulajdonságaik lehetnek (pl. tömörítés, mountpoint).</p>
+          <pre><code># Dataset létrehozása a web adatoknak
+sudo zfs create tank/www
+
+# Állítsunk be LZ4 tömörítést (nagyon gyors)
+sudo zfs set compression=lz4 tank/www
+
+# Állítsuk be a csatolási pontot (mountpoint)
+sudo zfs set mountpoint=/var/www tank/www
+# (Előtte az /var/www mappát át kell mozgatni/törölni)
+
+# Jelenlegi datasetek és használat
+sudo zfs list</code></pre>
+
+          <h3>Snapshotok: A ZFS szuperképessége</h3>
+          <pre><code># Pillanatfelvétel készítése (pl. egy frissítés előtt)
+sudo zfs snapshot tank/www@frissites-elott
+
+# ... elrontottál valamit ...
+
+# Visszaállítás a snapshotra (MINDEN @frissites-elott UTÁNI VÁLTOZÁS ELVESZIK!)
+sudo zfs rollback tank/www@frissites-elott
+
+# Snapshotok listázása
+sudo zfs list -t snapshot
+
+# Snapshot törlése
+sudo zfs destroy tank/www@frissites-elott</code></pre>
+          
+          <h3>Teljesítmény és állapot</h3>
+          <pre><code># Pool I/O statisztika (folyamatos)
+sudo zpool iostat -v 5
+
+# Memória cache (ARC) statisztikák
+arc_summary
+</code></pre>
+        </section>
+
+        <section id="sec-11">
+          <h2>11. LXQt & megjelenés</h2>
+          <p>Az LXQt a Qt5-re épülő, rendkívül könnyű asztali környezet. A zoffOS egy előre konfigurált, sötét témát használ a kényelmes használat érdekében.</p>
+          <ul>
+            <li><strong>Téma:</strong> Arc-Dark (<code>/usr/share/themes/Arc-Dark</code>)</li>
+            <li><strong>Ikonok:</strong> Papirus-Dark (<code>/usr/share/icons/Papirus-Dark</code>)</li>
+            <li><strong>Ablakkezelő:</strong> Openbox</li>
+            <li><strong>Bejelentkező képernyő:</strong> LightDM (GTK greeter)</li>
+            <li><strong>Terminál:</strong> QTerminal (<code>qterminal</code>)</li>
+            <li><strong>Fájlkezelő:</strong> PCManFM-Qt</li>
+            <li><strong>Alapértelmezett háttérkép:</strong> <code>/usr/share/backgrounds/zoffos-wallpaper.png</code></li>
+          </ul>
+          <p>A beállítások nagy része a <strong>Főmenü → Beállítások → LXQt beállítóközpont</strong> menüpont alatt érhető el grafikusan. Itt állítható a "Megjelenés" (téma, ikonok) és az "Asztali beállítások" (háttérkép).</p>
+
+          <h3>LightDM finomhangolás</h3>
+          <p>A bejelentkező képernyő (Greeter) a LightDM-et használja. A konfigurációja itt található:</p>
+          <pre><code># Fő konfigurációs fájl
+sudo nano /etc/lightdm/lightdm.conf
+
+# A zoffOS által használt GTK greeter beállításai
+sudo nano /etc/lightdm/lightdm-gtk-greeter.conf</code></pre>
+          <p>Itt állítható be például az alapértelmezett téma, ikon, vagy akár az automatikus bejelentkezés (nem ajánlott szerveren).</p>
+
+          <h3>A /etc/skel mappa szerepe</h3>
+          <p>A <code>/etc/skel</code> (skeleton = csontváz) mappa tartalmazza azokat a konfigurációs fájlokat és mappákat (pl. <code>.config</code>, <code>.local</code>), amiket egy <strong>új felhasználó</strong> létrehozásakor (<code>adduser new_user</code>) a rendszer automatikusan átmásol az új felhasználó <code>/home/new_user/</code> mappájába.</p>
+          <p>A zoffOS <code>/etc/skel</code> mappája tartalmazza az LXQt sötét téma beállításait, az alapértelmezett <code>.bashrc</code>-t és terminál profilokat, biztosítva, hogy minden új felhasználó ugyanazt a kényelmes környezetet kapja, mint az <code>admin</code>.</p>
+        </section>
+
+        <section id="sec-12">
+          <h2>12. Debian FHS – mélyebb áttekintés</h2>
+          <p>A Filesystem Hierarchy Standard (FHS) határozza meg, hogy a Linux rendszereken melyik mappa mire szolgál. Ennek ismerete elengedhetetlen a hibakereséshez és adminisztrációhoz.</p>
+          <div class="grid cols-3">
+            <div>
+              <h3><code>/</code> (Gyökér)</h3>
+              <p>A teljes fájlrendszer kiindulási pontja.</p>
+              <h4><code>/boot</code></h4><p>Kernel (<code>vmlinuz</code>), initramfs és a GRUB bootloader fájljai.</p>
+              <h4><code>/lib</code>, <code>/lib64</code>, <code>/lib/x86_64-linux-gnu</code></h4><p>Alapvető rendszerkönyvtárak (library), amik nélkül a rendszer nem indulna el.</p>
+              <h4><code>/dev</code></h4><p>Eszközfájlok (device). Itt jelennek meg a hardverek, pl. <code>/dev/sda</code> (lemez), <code>/dev/ttyUSB0</code> (soros port).</p>
+            </div>
+            <div>
+              <h3><code>/etc</code> (Konfigurációk)</h3>
+              <p>A rendszer és a programok összes globális konfigurációs fájlja. <strong>Ezt a mappát kell a leggyakrabban menteni.</strong></p>
+              <ul>
+                <li><code>/etc/ssh/sshd_config</code> (SSH)</li>
+                <li><code>/etc/nginx/</code> (Nginx)</li>
+                <li><code>/etc/ufw/</code> (Tűzfal)</li>
+                <li><code>/etc/fstab</code> (Lemezek csatolása)</li>
+                <li><code>/etc/passwd</code> (Felhasználók)</li>
+                <li><code>/etc/hostname</code> (Gépnév)</li>
+              </ul>
+            </div>
+            <div>
+              <h3><code>/usr</code> (User Programs)</h3>
+              <p>A telepített programok, dokumentációk és könyvtáraik nagy része. Általában csak olvasható (kivéve frissítéskor).</p>
+              <ul>
+                <li><code>/usr/bin</code> (Futtatható programok)</li>
+                <li><code>/usr/sbin</code> (Rendszeradminisztrációs programok)</li>
+                <li><code>/usr/lib</code> (Programok könyvtárai)</li>
+                <li><code>/usr/share/doc</code> (Dokumentáció)</li>
+              </ul>
+            </div>
+          </div>
+          <hr style="border-color:var(--border); margin:16px 0;">
+          <div class="grid cols-2">
+            <div>
+              <h3><code>/var</code> (Változó adatok)</h3>
+              <p>Ide kerül minden, ami gyakran változik: logok, web adatok, adatbázisok, cache.</p>
+              <ul>
+                <li><strong><code>/var/log</code></strong> – A legfontosabb naplók (<code>auth.log</code>, <code>syslog</code>, <code>nginx/</code>, <code>fail2ban.log</code>).</li>
+                <li><strong><code>/var/www/html</code></strong> – Alapértelmezett Nginx web gyökér.</li>
+                <li><strong><code>/var/lib</code></strong> – Állapotadatok (pl. <code>/var/lib/apt</code>, <code>/var/lib/mysql</code>).</li>
+                <li><strong><code>/var/cache</code></strong> – Gyorsítótárak (pl. <code>/var/cache/apt</code>).</li>
+              </ul>
+            </div>
+            <div>
+              <h3><code>/home</code>, <code>/root</code>, <code>/tmp</code></h3>
+              <h4><code>/home</code></h4>
+              <p>A normál felhasználók (pl. <code>admin</code>) személyes mappái. Itt vannak a felhasználói beállítások (<code>.config</code>) és az adatok.</p>
+              <h4><code>/root</code></h4>
+              <p>A <code>root</code> (super user) felhasználó home mappája. Ide nem szabad normál adatot menteni.</p>
+              <h4><code>/tmp</code></h4>
+              <p>Átmeneti fájlok. A rendszer újraindításakor általában törlődik a tartalma.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-13">
+          <h2>13. Gyakori hibák & megoldások</h2>
+          <table>
+            <thead><tr><th>Probléma</th><th>Valószínű Ok</th><th>Megoldás / Hol keresd?</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>SSH: "Connection refused"</strong></td>
+                <td>SSH szolgáltatás nem fut, VAGY UFW tűzfal tiltja.</td>
+                <td><code>systemctl status ssh</code><br><code>sudo ufw status | grep 22</code> (vagy az egyedi portod)</td>
+              </tr>
+              <tr>
+                <td><strong>SSH: "Permission denied (publickey)"</strong></td>
+                <td>Jelszó tiltva, és a kliens kulcsa nincs a szerveren, VAGY a <code>~/.ssh</code> mappa jogosultságai rosszak.</td>
+                <td>Helyi konzolon: <code>ssh-copy-id</code> újra, VAGY<br><code>chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys</code></td>
+              </tr>
+              <tr>
+                <td><strong>Nginx nem indul (failed)</strong></td>
+                <td>Szintaktikai hiba a configban, VAGY a 80/443 port már foglalt.</td>
+                <td><code>sudo nginx -t</code> (megmondja a hibás sort)<br><code>sudo ss -tulpn | grep -E ':80|:443'</code></td>
+              </tr>
+              <tr>
+                <td><strong>Weboldal 502 Bad Gateway</strong></td>
+                <td>Nginx fut (reverse proxy), de a háttéralkalmazás (pl. PHP-FPM, Node.js) nem, vagy nem válaszol.</td>
+                <td><code>systemctl status php8.2-fpm</code> (vagy a te backendod)<br><code>journalctl -u my-app</code></td>
+              </tr>
+              <tr>
+                <td><strong>Nincs hálózat (Live/Telepített)</strong></td>
+                <td>NetworkManager nem látja a kártyát, vagy nincs driver (pl. non-free Wi-Fi).</td>
+                <td><code>ip a</code> (látod az eszközt? pl. enp3s0)<br><code>nmcli device status</code><br><code>sudo dmesg | grep -i firmware</code> (firmware hiba keresése)</td>
+              </tr>
+              <tr>
+                <td><strong>A rendszer "read-only" (csak olvasható)</strong></td>
+                <td>Komoly fájlrendszer hiba, a kernel "read-only" módban csatolta fel a lemezt, hogy megvédje az adatokat.</td>
+                <td>Azonnali reboot. Ha nem javul, Live USB-ről boot és <code>fsck /dev/sdXN</code> futtatása a rendszerpartíción.</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <h3>Végső megoldás: Helyreállítás (chroot)</h3>
+          <p>Ha a rendszer nem bootol (pl. elrontott <code>fstab</code> vagy GRUB frissítés), bootolj a zoffOS Live USB-ről, majd "chroot"-olj be a telepített rendszerbe:</p>
+          <pre><code># Tegyük fel, a rendszer az /dev/sda2-n van, EFI a /dev/sda1-en
+sudo mount /dev/sda2 /mnt
+sudo mount /dev/sda1 /mnt/boot/efi
+
+# Kössük be a szükséges virtuális fájlrendszereket
+sudo mount --rbind /dev /mnt/dev
+sudo mount --rbind /proc /mnt/proc
+sudo mount --rbind /sys /mnt/sys
+
+# Lépjünk be a telepített rendszerbe, mintha az futna
+sudo chroot /mnt
+
+# ... Most már a telepített rendszeren vagy.
+# Javítsd a hibát (pl. nano /etc/fstab, update-grub)
+# Majd lépj ki:
+exit
+
+# És unmount (fontos!)
+sudo umount -R /mnt
+reboot</code></pre>
+        </section>
+
+        <section id="sec-14">
+          <h2>14. Parancs puskázó</h2>
+          <div class="grid cols-3">
+            <div>
+              <h3>systemctl (Szolgáltatások)</h3>
+              <pre><code>systemctl status nginx
+systemctl restart ssh
+systemctl enable --now fail2ban
+systemctl disable cron
+systemctl list-unit-files
+systemctl list-units --type=service</code></pre>
+            </div>
+            <div>
+              <h3>apt (Csomagkezelés)</h3>
+              <pre><code>apt update
+apt full-upgrade -y
+apt install htop mc
+apt purge nano
+apt autoremove --purge
+apt search nginx
+apt show nginx</code></pre>
+            </div>
+            <div>
+              <h3>ufw (Tűzfal)</h3>
+              <pre><code>ufw status verbose
+ufw enable
+ufw default deny incoming
+ufw allow 443/tcp
+ufw allow 1000:2000/udp
+ufw delete allow 80/tcp
+ufw limit 22/tcp</code></pre>
+            </div>
+          </div>
+          <div class="grid cols-3" style="margin-top:16px;">
+            <div>
+              <h3>Fájlkezelés</h3>
+              <pre><code>ls -laHF
+pwd
+cp -r /src /dest
+mv /old /new
+rm -rf /dir
+mkdir -p /a/b/c
+tar -czvf a.tar.gz /dir
+tar -xzvf a.tar.gz</code></pre>
+            </div>
+            <div>
+              <h3>Keresés</h3>
+              <pre><code># Fájl keresés név szerint
+find / -name "config.xml"
+
+# Keresés tartalomban
+grep -r "jelszó" /etc/
+
+# Csomag keresése, amié a fájl
+dpkg -S /bin/ls</code></pre>
+            </div>
+            <div>
+              <h3>Hálózat</h3>
+              <pre><code>ip a
+ss -tulpn
+nmcli device status
+nmcli connection show
+ping google.com
+traceroute 8.8.8.8
+host google.com</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-15">
+          <h2>15. Fogalomtár</h2>
+          <ul>
+            <li><strong>FHS</strong> – Filesystem Hierarchy Standard, a Linux mappastruktúra szabványa.</li>
+            <li><strong>UFW</strong> – Uncomplicated Firewall, egyszerűsített felület az <code>iptables</code> (Linux kernel tűzfal) kezelésére.</li>
+            <li><strong>Fail2ban</strong> – Naplófájlokat (pl. <code>auth.log</code>) figyelő szolgáltatás, ami naplók alapján (pl. X sikertelen SSH próba) IP címeket tilt le a tűzfalon.</li>
+            <li><strong>AppArmor / SELinux</strong> – Mandatory Access Control (MAC) rendszerek. Az AppArmor (amit a Debian használ) profilokkal korlátozza, hogy egy program (pl. Nginx) milyen rendszererőforrásokhoz férhet hozzá.</li>
+            <li><strong>Snapshot</strong> – Egy fájlrendszer (pl. ZFS, BTRFS) vagy virtuális gép egy adott időpillanatban rögzített állapota, amire vissza lehet térni.</li>
+            <li><strong>systemd</strong> – A modern Linux disztribúciók (Debian 8+ óta) alapvető init rendszere és szolgáltatáskezelője. Ez indítja a rendszert és felügyeli a szolgáltatásokat (<code>systemctl</code>).</li>
+            <li><strong>journald</strong> – A systemd központi naplózó démonja (<code>journalctl</code>).</li>
+            <li><strong>LVM</strong> – Logical Volume Manager. Absztrakciós réteg a fizikai lemezek és a partíciók között, lehetővé teszi a partíciók átméretezését, snapshotok készítését (nem CoW).</li>
+            <li><strong>CoW (Copy-on-Write)</strong> – Fájlrendszer technika (pl. ZFS), ahol az adatok felülírása helyett a módosítás új helyre íródik, növelve az adatbiztonságot.</li>
+            <li><strong>Hardening</strong> – "Edzés", "keményítés". Az a folyamat, amikor egy rendszert (pl. SSH, OS) biztonságosabbá teszünk a felesleges szolgáltatások letiltásával és a konfigurációk szigorításával.</li>
+          </ul>
+        </section>
+
+        <!-- 16. Felhasználók & jogosultságok -->
+        <section id="sec-16">
+          <h2>16. Felhasználók & jogosultságok</h2>
+          <h3>Felhasználó létrehozása</h3>
+          <pre><code>sudo adduser zoffina
+sudo usermod -aG sudo zoffina   # sudo jog</code></pre>
+          <h3>SSH kulcs és sudo korlátozás</h3>
+          <pre><code># kulcs mappa és jogosultságok
+sudo -u zoffina mkdir -p /home/zoffina/.ssh
+sudo -u zoffina chmod 700 /home/zoffina/.ssh
+sudoedit /etc/sudoers.d/90-zoffina
+# Tartalom példa (jelszó kelljen!):
+# zoffina  ALL=(ALL:ALL)  ALL</code></pre>
+          <h3>Fájl jogosultság gyorspélda</h3>
+          <pre><code># tulajdon / jogosultság
+sudo chown -R www-data:www-data /var/www/example.hu
+sudo chmod -R u=rwX,g=rX,o= /var/www/example.hu</code></pre>
+        </section>
+
+        <!-- 17. AppArmor & szolgáltatás-izoláció -->
+        <section id="sec-17">
+          <h2>17. AppArmor & szolgáltatás-izoláció</h2>
+          <p>A Debian alapértelmezetten AppArmor-t használ folyamat-szintű hozzáférés-szabályozásra.</p>
+          <h3>Állapot és profilok</h3>
+          <pre><code>sudo aa-status
+sudo aa-enforce /etc/apparmor.d/usr.sbin.nginx
+sudo aa-complain /etc/apparmor.d/usr.sbin.sshd</code></pre>
+          <h3>Egyedi Nginx korlátozás (részlet)</h3>
+          <pre><code># /etc/apparmor.d/local/usr.sbin.nginx
+# engedélyezett olvasás a webrootra
+/var/www/** r,
+# csak logok írása
+/var/log/nginx/** rw,</code></pre>
+        </section>
+
+        <!-- 18. Mentési stratégiák -->
+        <section id="sec-18">
+          <h2>18. Mentési stratégiák</h2>
+          <p>Javasolt: 3-2-1 szabály (3 másolat, 2 külön médium, 1 offsite).</p>
+          <h3>Rsync inkrementális snapshot-stílusban</h3>
+          <pre><code>BACKUP=/mnt/backup
+TODAY=$(date +%F)
+rsync -aAX --delete --link-dest=$BACKUP/current /var/www/ $BACKUP/$TODAY/
+rm -f $BACKUP/current && ln -s $BACKUP/$TODAY $BACKUP/current</code></pre>
+          <h3>ZFS snapshot és küldés</h3>
+          <pre><code>sudo zfs snapshot tank/www@$(date +%F-%H%M)
+sudo zfs send -i tank/www@prev tank/www@now | ssh backup zfs receive backup/www</code></pre>
+        </section>
+
+        <!-- 19. Automatizálás: systemd units & timers -->
+        <section id="sec-19">
+          <h2>19. Automatizálás: systemd units & timers</h2>
+          <h3>Szolgáltatás egység példa</h3>
+          <pre><code># /etc/systemd/system/zoffos-health.service
+[Unit]
+Description=ZoffOS health check
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/zoffos-health.sh
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+          <h3>Időzítő egység</h3>
+          <pre><code># /etc/systemd/system/zoffos-health.timer
+[Unit]
+Description=Run zoffos health every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
+# Aktiválás
+sudo systemctl daemon-reload
+sudo systemctl enable --now zoffos-health.timer</code></pre>
+        </section>
+
+        <!-- 20. Konténerek röviden -->
+        <section id="sec-20">
+          <h2>20. Konténerek röviden (Docker/Podman)</h2>
+          <h3>Telepítés (Docker)</h3>
+          <pre><code>sudo apt install -y docker.io docker-compose-plugin
+sudo usermod -aG docker admin
+newgrp docker</code></pre>
+          <h3>Egyszerű reverse proxy stack</h3>
+          <pre><code># docker compose file (részlet)
+services:
+  caddy:
+    image: caddy:latest
+    ports: ["80:80","443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  app:
+    image: nginx:alpine
+    volumes:
+      - ./site:/usr/share/nginx/html:ro</code></pre>
+        </section>
+
+        <!-- 21. Konfiguráció menedzsment (Ansible) -->
+        <section id="sec-21">
+          <h2>21. Konfiguráció menedzsment (Ansible)</h2>
+          <h3>Gyors kezdés</h3>
+          <pre><code>sudo apt install -y ansible
+# inventory példa
+cat > hosts.ini <<EOF
+[zoffos]
+server1 ansible_host=192.0.2.10 ansible_user=admin
+EOF
+# ping teszt
+ansible -i hosts.ini zoffos -m ping</code></pre>
+          <h3>UFW szabály beállítás task</h3>
+          <pre><code>- name: UFW szabályok
+  hosts: zoffos
+  become: yes
+  tasks:
+    - ufw:
+        rule: allow
+        port: "443"
+        proto: tcp</code></pre>
+        </section>
+
+        <!-- 22. Reverse proxy & load balancing -->
+        <section id="sec-22">
+          <h2>22. Reverse proxy & load balancing</h2>
+          <h3>Nginx upstream példa</h3>
+          <pre><code>upstream app_pool {
+  server 127.0.0.1:3001;
+  server 127.0.0.1:3002;
+}
+server {
+  listen 80;
+  server_name example.hu;
+  location / {
+    proxy_pass http://app_pool;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}</code></pre>
+          <h3>Egyszerű rate limiting</h3>
+          <pre><code>limit_req_zone $binary_remote_addr zone=api:10m rate=5r/s;
+server { location /api/ { limit_req zone=api burst=10; } }</code></pre>
+        </section>
+
+        <!-- 23. Teljesítményhangolás -->
+        <section id="sec-23">
+          <h2>23. Teljesítményhangolás</h2>
+          <h3>Nginx alap hangolás</h3>
+          <pre><code>worker_processes auto;
+worker_rlimit_nofile 65535;
+events { worker_connections 8192; }
+http {
+  sendfile on; tcp_nopush on; tcp_nodelay on;
+  keepalive_timeout 20;
+  types_hash_max_size 4096;
+}</code></pre>
+          <h3>Kernel paraméterek (kiegészítés)</h3>
+          <pre><code># /etc/sysctl.d/99-zoffos-perf.conf
+net.core.somaxconn = 4096
+net.ipv4.tcp_fin_timeout = 15
+fs.file-max = 2097152
+vm.swappiness = 10
+# aktiválás
+sudo sysctl --system</code></pre>
+        </section>
+
+        <!-- 24. Üzemeltetési runbook -->
+        <section id="sec-24">
+          <h2>24. Üzemeltetési runbook</h2>
+          <h3>Heti rutin</h3>
+          <ul>
+            <li>Frissítések: <code>apt update &amp;&amp; apt full-upgrade</code></li>
+            <li>Log ellenőrzés: <code>journalctl -p warning --since "-7d"</code></li>
+            <li>Mentés ellenőrzés: visszaállítás <em>próba</em> egy fájllal</li>
+          </ul>
+          <h3>Incidens sablon</h3>
+          <pre><code>[Időbélyeg] – Mi történt?
+Hatókör – mely szolgáltatások érintettek?
+Ideiglenes mitigáció – mit tettünk?
+Gyökérok – (postmortem után töltsd ki)
+Akciópontok – határidőkkel</code></pre>
+        </section>
+
+        <!-- 25. Mellékletek & sablonok -->
+        <section id="sec-25">
+          <h2>25. Mellékletek & sablonok</h2>
+          <h3>Nginx biztonságos alap konfig (részlet)</h3>
+          <pre><code>server_tokens off;
+add_header X-Content-Type-Options nosniff always;
+add_header X-Frame-Options DENY always;
+add_header Referrer-Policy no-referrer-when-downgrade;
+add_header Content-Security-Policy "default-src 'self'" always;</code></pre>
+          <h3>Fail2ban jail.local példa</h3>
+          <pre><code>[DEFAULT]
+bantime = 1h
+findtime = 10m
+maxretry = 6
+[sshd]
+enabled = true
+port = ssh</code></pre>
+          <h3>UFW preset script (példa)</h3>
+          <pre><code>#!/usr/bin/env bash
+set -euo pipefail
+ufw --force reset
+ufw default deny incoming
+ufw default allow outgoing
+for p in 22 80 443; do ufw allow $p/tcp; done
+ufw --force enable
+ufw status verbose</code></pre>
+        </section>
+
+        <footer>
+          Készült: zoffOS dokumentáció • Verzió 1.0.5 • Statikus HTML + CSS.
+        </footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
